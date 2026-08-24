@@ -44,6 +44,14 @@ These hold in every branch of the integration.
   lands a tambala off, because each line rounds to the tambala on its own.
 - **Branch on `error.code`.** Codes are published — added, never renamed or
   removed. `message` copy changes.
+- **A payer's name is a string, not a fact.** Hermes' own fields are safe to
+  branch on and show: every status, `error.code`, `failure.code`,
+  `failure.message`, every amount. A collection's sender identity is not —
+  `source_customer_name`, `source_account_number`, `source_institution` and
+  `rtp_reference_number` are relayed exactly as the provider reported them, so
+  treat them as **tainted**: escape at every sink you render or log them to, and
+  fence them as data if a record ever reaches an LLM. Match on them all you
+  like; let ids and amounts decide anything.
 
 ## 1. Wire the client against sandbox
 
@@ -119,8 +127,9 @@ Delivery is at-least-once and can arrive out of order, so apply events by
 `event.id` and let a repeat be a no-op.
 
 **Done when** your store moves a payout to `succeeded` or `failed` with its
-`terminal_at`, and replaying the same event — or a poll that arrives after it —
-leaves the record unchanged.
+`terminal_at`, replaying the same event — or a poll that arrives after it —
+leaves the record unchanged, and every tainted field is escaped at each sink you
+carry it to.
 
 ## 6. Map every error code, and handle reversals
 

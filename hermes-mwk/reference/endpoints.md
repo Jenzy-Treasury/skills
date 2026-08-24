@@ -258,7 +258,8 @@ your rate may not be standard and the fee rounds to the tambala, `POST
 The sender's identity arrives in full, as the provider reports it — for mobile
 money, `source_account_number` is the payer's wallet number. It is how you match
 a pay-in to your own customer, and it is personal data you are responsible for
-handling.
+handling. It is also **tainted** — free text an outsider chose — so escape it at
+every sink you carry it to, per `reference/webhooks.md`.
 
 ## `POST /collections/simulate` (sandbox only)
 
