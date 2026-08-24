@@ -141,6 +141,38 @@ def jenzy_webhook():
     return "", 200
 ```
 
+## Verified is not trusted
+
+A valid signature proves **Hermes** sent the event. It says nothing about who
+wrote the words inside it — part of a collection was typed by a stranger at a
+bank counter and is relayed to you unchanged. Trust the envelope; take the
+contents field by field. `data` is byte-identical to the matching `/v1` read, so
+the same split holds when you poll.
+
+| Field | Supplied by | Trust |
+| --- | --- | --- |
+| `event_type`, `status`, `failure.code`, `failure.message` | Hermes | safe |
+| every money figure, plus `id`, `created_at`, `terminal_at` | Hermes | safe |
+| `source_customer_name`, `source_account_number`, `source_institution`, `rtp_reference_number` | the payer, via the provider | **tainted** |
+| `destination.beneficiary_name`, `destination.account_number`, `destination.mobile_number` | your own end user, round-tripped back | **tainted** |
+
+Hermes-authored copy is fixed per code — `failure.message` included — and is
+safe to display as it stands. A tainted field is free text an outsider chose, so
+escape it at each sink it reaches:
+
+- **render** — escape at the template, in element text and in attributes
+  alike. A payer's name carries markup as easily as it carries a name.
+- **log** — pass it as a bound value in a structured record, and keep it out
+  of anything that is later executed: no concatenation into a shell command, an
+  SQL string, or a template.
+- **LLM** — fence it as data when a collection reaches a support bot or a
+  reconciliation agent, so an instruction written into a name stays text.
+
+Matching a pay-in to a customer on `source_customer_name` is what the field is
+for. Let ids and amounts decide the outcome: settle against the collection `id`
+and its money figures, and keep the sender's identity as the hint that led you
+there.
+
 ## Delivery semantics
 
 - Only a **2xx** counts as delivered. Redirects are failures and are never
